@@ -18,6 +18,7 @@ describe(challengeName, function () {
 
   it("Exploit", async function () {
     /** CODE YOUR EXPLOIT HERE  */
+
     const Attacker = await ethers.getContractFactory("BobsGuess", bob);
 
     this.attacker = await Attacker.deploy();

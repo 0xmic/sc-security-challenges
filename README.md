@@ -124,6 +124,20 @@ Help Bob stop Alice from reclaiming the atTheTop position.
 
 **Pass this [Test](test/calyptus-hill.js) to win the challenge.**
 
+### Solution Notes
+
+The challenge deals with a vulnerability in Ethereum smart contracts known as a Denial of Service (DoS) attack due to an unhandled exception. A contract can become vulnerable to this attack when it relies on transfer or send function to forward funds to another address, without handling the possibility of these operations failing.
+
+The CalyptusHill contract allows anyone to become atTheTop if they send an amount of Ether that is equal to or larger than the current bribe. The sent bribe is then forwarded to the current atTheTop address. Initially, Alice is atTheTop and whenever someone sends an equal or larger bribe to take her spot, she quickly sends the same amount to reclaim her position.
+
+The vulnerability arises in the receive function of the CalyptusHill contract, where the contract tries to forward the incoming Ether to the current atTheTop address using the transfer function. If the transfer call fails for any reason (e.g., the receiving contract runs out of gas or throws an exception), it will cause the entire receive function to revert, effectively preventing the execution of any code that follows it.
+
+Bob's goal is to take the atTheTop position and prevent Alice from reclaiming it. To achieve this, Bob deploys the HillAttack contract. This contract doesn't have a payable fallback function, which means it will automatically throw an exception if it receives Ether via a transfer or send call.
+
+When Bob calls the attack function of HillAttack contract, it sends Ether to the CalyptusHill contract, which tries to forward this incoming Ether to the current atTheTop address (Alice initially). After the first attack transaction, the atTheTop position has been claimed by Bob's HillAttack contract. Now, whenever CalyptusHill tries to send Ether to HillAttack (i.e., when Alice attempts to reclaim her position), it will fail and revert due to the lack of a payable fallback function in HillAttack. This prevents Alice from reclaiming the atTheTop position, effectively locking it to Bob's HillAttack contract.
+
+This example highlights a key principle in Ethereum smart contract development: be careful when using external calls, especially if they involve transferring Ether. External calls can introduce potential vulnerabilities, especially when not correctly handled or placed at the end of your functions.
+
 ---
 
 ## Challenge 4

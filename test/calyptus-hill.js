@@ -26,6 +26,12 @@ describe(challengeName, function () {
 
   it("Exploit", async function () {
     /** CODE YOUR EXPLOIT HERE  */
+
+    const HillAttack = await ethers.getContractFactory("HillAttack", bob);
+    this.hillAttack = await HillAttack.deploy();
+    this.hillAttack.connect(bob).attack(this.calyptusHill.address, {
+      value: ethers.utils.parseEther("1"),
+    });
   });
 
   after(async function () {
