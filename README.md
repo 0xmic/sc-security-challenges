@@ -72,11 +72,11 @@ Alice has deployed a secret Lock on blockchain that opens with a password. Help 
 
 In Ethereum, smart contract data is stored in a section of the blockchain called the contract's storage. This storage is divided into slots, with each slot capable of storing a 32 byte word. Smart contract variables are assigned slots in the order they are declared in the contract, starting from 0. This contract storage is publicly accessible to anyone that knows how to read it.
 
-The getStorageAt function provided by ethers.js allows you to read the raw data in a specific storage slot of a given Ethereum address. In your smart contract, the password variable is stored at slot 1 (as the locked boolean variable is at slot 0), so calling getStorageAt(lock.address, 1) retrieves the bytes32 password value from the smart contract's storage.
+The `getStorageAt` function provided by ethers.js allows you to read the raw data in a specific storage slot of a given Ethereum address. In your smart contract, the `password` variable is stored at slot 1 (as the `locked` boolean variable is at slot 0), so calling `getStorageAt(lock.address, 1)` retrieves the bytes32 password value from the smart contract's storage.
 
-Therefore, the reason why the ethers.provider.getStorageAt function is used in this scenario to "hack" the contract is because the password variable is not really private. Despite the password being marked as a private variable, it's important to know that 'private' in Solidity does not mean 'hidden'. It only means that it can't be accessed directly by other contracts, but its value is still stored openly on the blockchain.
+Therefore, the reason why the `ethers.provider.getStorageAt` function is used in this scenario to "hack" the contract is because the `password` variable is not really private. Despite the password being marked as a private variable, it's important to know that 'private' in Solidity does not mean 'hidden'. It only means that it can't be accessed directly by other contracts, but its value is still stored openly on the blockchain.
 
-In the context of the test, the getStorageAt function is used to retrieve the password from the contract's storage and then call the unlock function with that password, which unlocks the lock and allows the test to pass. This highlights an important concept in smart contract development: sensitive data, like passwords or private keys, should never be stored directly on-chain, because they can be easily retrieved using functions like getStorageAt.
+In the context of the test, the `getStorageAt` function is used to retrieve the `password` from the contract's storage and then call the `unlock` function with that password, which unlocks the lock and allows the test to pass. This highlights an important concept in smart contract development: sensitive data, like passwords or private keys, should never be stored directly on-chain, because they can be easily retrieved using functions like `getStorageAt`.
 
 ---
 
@@ -128,13 +128,13 @@ Help Bob stop Alice from reclaiming the atTheTop position.
 
 The challenge deals with a vulnerability in Ethereum smart contracts known as a Denial of Service (DoS) attack due to an unhandled exception. A contract can become vulnerable to this attack when it relies on transfer or send function to forward funds to another address, without handling the possibility of these operations failing.
 
-The CalyptusHill contract allows anyone to become atTheTop if they send an amount of Ether that is equal to or larger than the current bribe. The sent bribe is then forwarded to the current atTheTop address. Initially, Alice is atTheTop and whenever someone sends an equal or larger bribe to take her spot, she quickly sends the same amount to reclaim her position.
+The `CalyptusHill` contract allows anyone to become `atTheTop` if they send an amount of Ether that is equal to or larger than the current `bribe`. The sent bribe is then forwarded to the current `atTheTop` address. Initially, Alice is atTheTop and whenever someone sends an equal or larger bribe to take her spot, she quickly sends the same amount to reclaim her position.
 
-The vulnerability arises in the receive function of the CalyptusHill contract, where the contract tries to forward the incoming Ether to the current atTheTop address using the transfer function. If the transfer call fails for any reason (e.g., the receiving contract runs out of gas or throws an exception), it will cause the entire receive function to revert, effectively preventing the execution of any code that follows it.
+The vulnerability arises in the `receive` function of the `CalyptusHill` contract, where the contract tries to forward the incoming Ether to the current `atTheTop` address using the `transfer` function. If the `transfer` call fails for any reason (e.g., the receiving contract runs out of gas or throws an exception), it will cause the entire `receive` function to revert, effectively preventing the execution of any code that follows it.
 
-Bob's goal is to take the atTheTop position and prevent Alice from reclaiming it. To achieve this, Bob deploys the HillAttack contract. This contract doesn't have a payable fallback function, which means it will automatically throw an exception if it receives Ether via a transfer or send call.
+Bob's goal is to take the `atTheTop` position and prevent Alice from reclaiming it. To achieve this, Bob deploys the `HillAttack` contract. This contract doesn't have a payable fallback function, which means it will automatically throw an exception if it receives Ether via a `transfer` or `send` call.
 
-When Bob calls the attack function of HillAttack contract, it sends Ether to the CalyptusHill contract, which tries to forward this incoming Ether to the current atTheTop address (Alice initially). After the first attack transaction, the atTheTop position has been claimed by Bob's HillAttack contract. Now, whenever CalyptusHill tries to send Ether to HillAttack (i.e., when Alice attempts to reclaim her position), it will fail and revert due to the lack of a payable fallback function in HillAttack. This prevents Alice from reclaiming the atTheTop position, effectively locking it to Bob's HillAttack contract.
+When Bob calls the `attack` function of `HillAttack` contract, it sends Ether to the `CalyptusHill` contract, which tries to forward this incoming Ether to the current `atTheTop` address (Alice initially). After the first attack transaction, the `atTheTop` position has been claimed by Bob's `HillAttack` contract. Now, whenever CalyptusHill tries to send Ether to `HillAttack` (i.e., when Alice attempts to reclaim her position), it will fail and revert due to the lack of a payable fallback function in `HillAttack`. This prevents Alice from reclaiming the `atTheTop` position, effectively locking it to Bob's `HillAttack` contract.
 
 This example highlights a key principle in Ethereum smart contract development: be careful when using external calls, especially if they involve transferring Ether. External calls can introduce potential vulnerabilities, especially when not correctly handled or placed at the end of your functions.
 
@@ -191,12 +191,16 @@ Help Bob steal all the ETH from Alice's lending pool.
 
 **Pass this [Test](test/reenter.js) to win the challenge.**
 
----
+### Solution Notes
 
-## More Levels Coming Soon
+This challenge involves exploiting a reentrancy vulnerability in the lending pool contract named `ReenterPool` deployed by Alice. This contract provides a feature to deposit Ether and a feature to withdraw it at any time. It also provides a flash loan feature that allows anyone to borrow any amount of Ether as long as they return it within the same transaction.
 
-> Stuck at a level? We have provided the solution to all the tests along with respective smart contracts where ever needed in the solution branch. Checkout to the solution branch by typing the following in your terminal:
+The attacker contract `ReentersBob` is designed to steal all the Ether from the `ReenterPool` lending pool. Bob deploys the `ReentersBob` contract and calls the `attack` function, which initiates a flash loan for the entire balance of the `ReenterPool` contract.
 
-```bash
-git checkout Solutions
-```
+The `flashLoan` function of the `ReenterPool` contract expects a specific function named `execute` to exist in the borrower's contract. The `execute` function is called immediately after the loan is disbursed. In `ReentersBob` contract, the `execute` function is designed to reenter the `ReenterPool` contract by calling its `deposit` function, depositing the loaned amount back into the pool.
+
+Then, the `attack` function of `ReentersBob` calls the `withdraw` function of the `ReenterPool` contract. Since `ReentersBob` had previously deposited the loaned amount, it can now withdraw the entire balance of the `ReenterPool`, effectively stealing all the Ether from the pool.
+
+The success of this hack is confirmed by checking the final balance of the `ReenterPool` and Bob. If the `ReenterPool` is empty and Bob's balance has increased, the attack was successful.
+
+This hack exploits a reentrancy vulnerability because `ReentersBob` was able to call back into the `ReenterPool` contract before the `flashLoan` operation had completed. This is a reminder that smart contracts must carefully manage their state and consider the potential for reentrant calls when designing and implementing contract functions.
