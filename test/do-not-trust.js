@@ -34,6 +34,15 @@ describe(challengeName, function () {
 
   it("Exploit", async function () {
     /** CODE YOUR EXPLOIT HERE  */
+
+    const DoNotTrustBobFactory = await ethers.getContractFactory(
+      "DoNotTrustBob",
+      alice
+    );
+    this.exploit = await DoNotTrustBobFactory.deploy();
+    await this.exploit
+      .connect(bob)
+      .attack(this.pool.address, this.token.address);
   });
 
   after(async function () {

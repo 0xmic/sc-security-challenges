@@ -156,6 +156,23 @@ The pool has 1 million Calyptus Tokens (CPT) in balance. Complete the challenge 
 
 **Pass this [Test](test/do-not-trust.js) to win the challenge.**
 
+### Solution Notes
+
+
+The "Do Not Trust" challenge revolves around a vulnerability commonly referred to as an "Insecure External Call". This particular challenge centers around a smart contract that provides a feature of a flash loan, where a user can borrow tokens under the condition that they are returned within the same transaction.
+
+Here is how the vulnerability in the DoTrustLender smart contract is exploited:
+
+* The `flashLoan` function of the `DoTrustLender` contract allows any contract to borrow tokens and call a function on any contract with provided data. This is where the vulnerability lies.
+* The `DoTrustLender` contract checks whether the loan was paid back by comparing the balance of the tokens before and after the call to the target function. If the balance of tokens in the contract after the call is less than before, the function reverts.
+* The `DoNotTrustBob` contract's `attack` function calls `flashLoan` on the `DoTrustLender` contract, specifying that 0 tokens should be transferred to it, and that it should call the `approve` function on the token contract to allow itself to spend the lender contract's tokens.
+* This works because the `DoTrustLender` contract first transfers the tokens and then makes the external call. This means that `approve` is called after the tokens are already transferred, and there's nothing stopping the `DoNotTrustBob` contract from spending them.
+* After the `flashLoan` call, the `DoNotTrustBob` contract transfers all of the `DoTrustLender` contract's tokens to itself, effectively draining all tokens from the lender contract.
+
+The crux of this exploit is the dangerous practice of allowing untrusted contracts to execute arbitrary function calls. This allows the attacking contract to manipulate the state of the lending contract in a way that wasn't intended, leading to a loss of funds.
+
+A good rule of thumb when designing secure smart contracts is to always be aware of re-entrancy attacks and state changes during external calls. It's also a good practice to use the Checks-Effects-Interactions pattern, which recommends handling any state changes before making external calls.
+
 ---
 
 ## Challenge 5
