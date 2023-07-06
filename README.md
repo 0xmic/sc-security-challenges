@@ -68,6 +68,16 @@ Alice has deployed a secret Lock on blockchain that opens with a password. Help 
 
 **Pass this [Test](test/no-privacy.js) to win the challenge.**
 
+### Solution Notes
+
+In Ethereum, smart contract data is stored in a section of the blockchain called the contract's storage. This storage is divided into slots, with each slot capable of storing a 32 byte word. Smart contract variables are assigned slots in the order they are declared in the contract, starting from 0. This contract storage is publicly accessible to anyone that knows how to read it.
+
+The getStorageAt function provided by ethers.js allows you to read the raw data in a specific storage slot of a given Ethereum address. In your smart contract, the password variable is stored at slot 1 (as the locked boolean variable is at slot 0), so calling getStorageAt(lock.address, 1) retrieves the bytes32 password value from the smart contract's storage.
+
+Therefore, the reason why the ethers.provider.getStorageAt function is used in this scenario to "hack" the contract is because the password variable is not really private. Despite the password being marked as a private variable, it's important to know that 'private' in Solidity does not mean 'hidden'. It only means that it can't be accessed directly by other contracts, but its value is still stored openly on the blockchain.
+
+In the context of the test, the getStorageAt function is used to retrieve the password from the contract's storage and then call the unlock function with that password, which unlocks the lock and allows the test to pass. This highlights an important concept in smart contract development: sensitive data, like passwords or private keys, should never be stored directly on-chain, because they can be easily retrieved using functions like getStorageAt.
+
 ---
 
 ## Challenge 2
